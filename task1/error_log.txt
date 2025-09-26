@@ -1,0 +1,2 @@
+Error: Invalid email format - 2025-09-26
+Error: Attachment upload failed - Mock error
