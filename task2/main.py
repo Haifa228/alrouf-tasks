@@ -1,13 +1,16 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
-import os
 
 # Mock LLM function (no real OpenAI needed)
-def mock_llm_generate_email(summary: str, lang: str) -> str:
+def mock_llm_generate_email(summary: dict, lang: str) -> str:
+    client_name = summary.get("client", "Client")
+    grand_total = summary.get("grand_total", 0)
+    currency = summary.get("currency", "USD")
+    delivery_terms = summary.get("delivery_terms", "N/A")
     if lang == "ar":
-        return f"عزيزي {summary['client']},\n\nالسعر الإجمالي: {summary['grand_total']} {summary['currency']}.\nالشروط: {summary['delivery_terms']}.\n\nمع تحياتي،\nAlrouf"
-    return f"Dear {summary['client']},\n\nGrand Total: {summary['grand_total']} {summary['currency']}.\nTerms: {summary['delivery_terms']}.\n\nRegards,\nAlrouf"
+        return f"عزيزي {client_name},\n\nالسعر الإجمالي: {grand_total} {currency}.\nالشروط: {delivery_terms}.\n\nمع تحياتي،\nAlrouf"
+    return f"Dear {client_name},\n\nGrand Total: {grand_total} {currency}.\nTerms: {delivery_terms}.\n\nRegards,\nAlrouf"
 
 app = FastAPI()
 
@@ -34,21 +37,17 @@ def create_quote(input: QuoteInput):
         grand_total += price_per_line
 
     summary = {
-        "client": input.client["name"],
+        "client": input.client.get("name", "Unknown Client"),
         "grand_total": grand_total,
         "currency": input.currency,
         "delivery_terms": input.delivery_terms,
         "notes": input.notes
     }
 
-    email_draft = mock_llm_generate_email(summary, input.client["lang"])
+    email_draft = mock_llm_generate_email(summary, input.client.get("lang", "en"))
 
     return {
         "line_totals": line_totals,
         "grand_total": grand_total,
         "email_draft": email_draft
     }
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
